@@ -20,62 +20,62 @@ my $debug = 0;
 mkdir(TRG_IMG_DIR) unless -d TRG_IMG_DIR;
 
 if(!-f SRC_IMG_LIST || -z SRC_IMG_LIST) {
-    _build_image_list(SRC_IMG_DIR);
+    buildImageList(SRC_IMG_DIR);
 }
 
-open(FH, SRC_IMG_LIST); my @image_list = <FH>; close(FH);
+open(FH, SRC_IMG_LIST); my @imageList = <FH>; close(FH);
 
-if(scalar(@image_list) < 1) {
+if(scalar(@imageList) < 1) {
     print BOLD, RED, 'No images exist in: ', SRC_IMG_LIST, RESET, "\n";
     exit(1);
 }
 
-my $excel_parser = Spreadsheet::XLSX->new(XLS_PRODUCTS, my $converter);
+my $excelParser = Spreadsheet::XLSX->new(XLS_PRODUCTS, my $converter);
 
-foreach my $sheet(@{$excel_parser->{Worksheet}}) {
+foreach my $sheet(@{$excelParser->{Worksheet}}) {
     foreach my $row(1 .. $sheet->{MaxRow}) {
         my $upc = $sheet->{Cells}[$row][0]->{Val};
         my $brand = $sheet->{Cells}[$row][2]->{Val};
 
         if($upc) {
-            my $short_upc = substr($upc, -5);
-            my $target_file = TRG_IMG_DIR.'/'.$upc.'.eps';
-            my @upc_matches = grep(/${short_upc}\.eps$/, @image_list);
+            my $shortUpc = substr($upc, -5);
+            my $targetFile = TRG_IMG_DIR.'/'.$upc.'.eps';
+            my @upcMatches = grep(/${shortUpc}\.eps$/, @imageList);
 
-            chomp(@upc_matches);
+            chomp(@upcMatches);
 
-            my $upc_count = scalar(@upc_matches);
+            my $upcCount = scalar(@upcMatches);
 
-            if($upc_count == 1) {
+            if($upcCount == 1) {
                 if(!$debug) {
-                    _copy_image($upc_matches[0], $target_file);
-                    _convert_image($target_file);
+                    copyImage($upcMatches[0], $targetFile);
+                    convertImage($targetFile);
                 }
-            } elsif($upc_count > 1) {
+            } elsif($upcCount > 1) {
                 if($brand) {
-                    my @brand_matches = grep(/${brand}/, @upc_matches);
+                    my @brandMatches = grep(/${brand}/, @upcMatches);
 
-                    chomp(@brand_matches);
+                    chomp(@brandMatches);
 
-                    my $brand_count = scalar(@brand_matches);
+                    my $brandCount = scalar(@brandMatches);
 
-                    if($brand_count == 1) {
+                    if($brandCount == 1) {
                         if(!$debug) {
-                            _copy_image($brand_matches[0], $target_file);
-                            _convert_image($target_file);
+                            copyImage($brandMatches[0], $targetFile);
+                            convertImage($targetFile);
                         }
-                    } elsif($brand_count > 1) {
+                    } elsif($brandCount > 1) {
                         my @filenames;
 
-                        foreach(@brand_matches) {
+                        foreach(@brandMatches) {
                             m/\/([^\/]+\.eps)/;
                             push(@filenames, $1);
                         }
 
-                        if(scalar(_array_unique(@filenames)) == 1) {
+                        if(scalar(arrayUnique(@filenames)) == 1) {
                             if(!$debug) {
-                                _copy_image($brand_matches[0], $target_file);
-                                _convert_image($target_file);
+                                copyImage($brandMatches[0], $targetFile);
+                                convertImage($targetFile);
                             }
                         } else {
                             my $product = $sheet->{Cells}[$row][6]->{Val};
@@ -93,7 +93,7 @@ foreach my $sheet(@{$excel_parser->{Worksheet}}) {
 
                             my $i = 1;
 
-                            foreach(@brand_matches) {
+                            foreach(@brandMatches) {
                                 m/\/([^\/]+\.eps)/;
                                 print '  ', BOLD, BLUE, $i.') ', RESET, $1, "\n";
                                 ++$i;
@@ -101,19 +101,19 @@ foreach my $sheet(@{$excel_parser->{Worksheet}}) {
 
                             print "\n".': ';
 
-                            is_numeric: {
+                            isNumeric: {
                                 my $number = <STDIN>;
 
                                 chomp($number);
 
-                                if($number !~ /^[0-9]+$/ || $number > $brand_count) {
+                                if($number !~ /^[0-9]+$/ || $number > $brandCount) {
                                     print BOLD, RED, "\n", 'Invalid selection. Please try again.', RESET, "\n\n", ': ';
-                                    redo is_numeric;
+                                    redo isNumeric;
                                 } else {
                                     if($number > 0) {
                                         if(!$debug) {
-                                            _copy_image($brand_matches[--$number], $target_file);
-                                            _convert_image($target_file);
+                                            copyImage($brandMatches[--$number], $targetFile);
+                                            convertImage($targetFile);
                                         }
                                     }
                                 }
@@ -128,13 +128,13 @@ foreach my $sheet(@{$excel_parser->{Worksheet}}) {
 
 exit(0);
 
-sub _array_unique {
+sub arrayUnique {
     my %seen;
 
     grep(!$seen{$_}++, @_);
 }
 
-sub _copy_image {
+sub copyImage {
     my($source, $target) = @_;
 
     print 'Copying ';
@@ -147,20 +147,20 @@ sub _copy_image {
     return;
 }
 
-sub _convert_image {
+sub convertImage {
     my $filename = shift;
-    my $base_filename = substr($filename, 0, -4);
+    my $baseFilename = substr($filename, 0, -4);
 
     print 'Converting image to JPG...';
-    system('convert -density 300 -layers flatten "${filename}" "${base_filename}.jpg"');
+    system('convert -density 300 -layers flatten "${filename}" "${baseFilename}.jpg"');
     print BOLD, BLUE, 'done!', RESET, "\n";
 
     print 'Converting image to PNG...';
-    system('convert -density 300 -layers flatten "${filename}" "${base_filename}.png"');
+    system('convert -density 300 -layers flatten "${filename}" "${baseFilename}.png"');
     print BOLD, BLUE, 'done!', RESET, "\n";
 }
 
-sub _build_image_list {
+sub buildImageList {
     my $dir = shift;
 
     print 'Building image list...';
