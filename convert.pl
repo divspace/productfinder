@@ -15,7 +15,7 @@ use constant XLS_PRODUCTS => 'products/missing.xlsx';
 use constant SRC_IMG_DIR  => '/Volumes/AFM_Artwork';
 use constant TRG_IMG_DIR  => '/Volumes/Raid/MSC Drive/Product Images';
 
-my $debug = 1;
+my $debug = 0;
 
 mkdir(TRG_IMG_DIR) unless -d TRG_IMG_DIR;
 
