@@ -1,0 +1,12 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# The above will handle all files not found below
+
+*.md text
+*.pl text
+*.sh text
+.editorconfig text
+.gitattributes text
+.gitconfig text
+.gitignore text
