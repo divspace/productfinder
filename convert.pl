@@ -11,10 +11,11 @@ use Spreadsheet::XLSX;
 use Term::ANSIColor qw(:constants);
 
 use constant SRC_IMG_LIST => 'images/list.txt';
+use constant MIS_IMG_LIST => 'images/missing.txt';
 use constant XLS_PRODUCTS => 'products/all.xlsx';
 use constant SRC_IMG_DIR  => '/Volumes/AFM_Artwork';
-use constant TRG_IMG_DIR  => '/Volumes/Raid/MSC Drive/Product Images';
-use constant TRG_WEB_DIR  => '/Volumes/Raid/MSC Drive/Product Images/Web';
+use constant TRG_EPS_DIR  => '/Volumes/Raid/MSC Drive/Product Images';
+use constant TRG_IMG_DIR  => '/Volumes/Raid/MSC Drive/Product Images/Web';
 
 my $debug = 0;
 
@@ -38,7 +39,7 @@ foreach my $sheet(@{$excelParser->{Worksheet}}) {
 
         if($upc) {
             my $shortUpc = substr($upc, -5);
-            my $epsImage = TRG_IMG_DIR.'/'.$upc.'.eps';
+            my $epsImage = TRG_EPS_DIR.'/'.$upc.'.eps';
             my @upcMatches = grep(/${shortUpc}\.eps$/, @imageList);
 
             chomp(@upcMatches);
@@ -114,12 +115,18 @@ foreach my $sheet(@{$excelParser->{Worksheet}}) {
                                             copyImage($brandMatches[--$number], $epsImage);
                                             convertImage($epsImage);
                                         }
+                                    } else {
+                                        addToMissingList($upc);
                                     }
                                 }
                             }
                         }
+                    } else {
+                        addToMissingList($upc);
                     }
                 }
+            } else {
+                addToMissingList($upc);
             }
         }
     }
@@ -136,6 +143,8 @@ sub arrayUnique {
 sub copyImage {
     my($source, $target) = @_;
 
+    mkdir(TRG_EPS_DIR) unless -d TRG_EPS_DIR;
+
     print 'Copying ';
     print BOLD, WHITE, $source, RESET;
     print ' => ';
@@ -147,16 +156,28 @@ sub copyImage {
 }
 
 sub convertImage {
-    my $source = shift;
-    my $filename = substr($source, 0, -3);
+    shift =~ m/\/(\d+)\.eps$/;
+
+    my $sourceImage = TRG_EPS_DIR.'/'.$1.'.eps';
+    my $targetImage = TRG_IMG_DIR.'/'.$1.'.';
+
+    mkdir(TRG_IMG_DIR) unless -d TRG_IMG_DIR;
 
     print 'Converting image to JPG...';
-    system('convert -density 300 -layers flatten "'.$source.'" "'.TRG_WEB_DIR.'/'.$filename.'jpg"');
+    system('convert -density 300 -layers flatten "'.$sourceImage.'" "'.$targetImage.'jpg"');
     print BOLD, BLUE, 'done!', RESET, "\n";
 
     print 'Converting image to PNG...';
-    system('convert -density 300 -layers flatten "'.$source.'" "'.TRG_WEB_DIR.'/'.$filename.'png"');
+    system('convert -density 300 -layers flatten "'.$sourceImage.'" "'.$targetImage.'png"');
     print BOLD, BLUE, 'done!', RESET, "\n";
+}
+
+sub addToMissingList {
+    my $upc = shift;
+
+    open(FH, '>>', MIS_IMG_LIST);
+    say FH $upc;
+    close(FH);
 }
 
 sub buildImageList {
