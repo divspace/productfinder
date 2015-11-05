@@ -11,13 +11,12 @@ use Spreadsheet::XLSX;
 use Term::ANSIColor qw(:constants);
 
 use constant SRC_IMG_LIST => 'images/list.txt';
-use constant XLS_PRODUCTS => 'products/missing.xlsx';
+use constant XLS_PRODUCTS => 'products/all.xlsx';
 use constant SRC_IMG_DIR  => '/Volumes/AFM_Artwork';
 use constant TRG_IMG_DIR  => '/Volumes/Raid/MSC Drive/Product Images';
+use constant TRG_WEB_DIR  => '/Volumes/Raid/MSC Drive/Product Images/Web';
 
 my $debug = 0;
-
-mkdir(TRG_IMG_DIR) unless -d TRG_IMG_DIR;
 
 if(!-f SRC_IMG_LIST || -z SRC_IMG_LIST) {
     buildImageList(SRC_IMG_DIR);
@@ -39,7 +38,7 @@ foreach my $sheet(@{$excelParser->{Worksheet}}) {
 
         if($upc) {
             my $shortUpc = substr($upc, -5);
-            my $targetFile = TRG_IMG_DIR.'/'.$upc.'.eps';
+            my $epsImage = TRG_IMG_DIR.'/'.$upc.'.eps';
             my @upcMatches = grep(/${shortUpc}\.eps$/, @imageList);
 
             chomp(@upcMatches);
@@ -48,8 +47,8 @@ foreach my $sheet(@{$excelParser->{Worksheet}}) {
 
             if($upcCount == 1) {
                 if(!$debug) {
-                    copyImage($upcMatches[0], $targetFile);
-                    convertImage($targetFile);
+                    copyImage($upcMatches[0], $epsImage);
+                    convertImage($epsImage);
                 }
             } elsif($upcCount > 1) {
                 if($brand) {
@@ -61,8 +60,8 @@ foreach my $sheet(@{$excelParser->{Worksheet}}) {
 
                     if($brandCount == 1) {
                         if(!$debug) {
-                            copyImage($brandMatches[0], $targetFile);
-                            convertImage($targetFile);
+                            copyImage($brandMatches[0], $epsImage);
+                            convertImage($epsImage);
                         }
                     } elsif($brandCount > 1) {
                         my @filenames;
@@ -74,8 +73,8 @@ foreach my $sheet(@{$excelParser->{Worksheet}}) {
 
                         if(scalar(arrayUnique(@filenames)) == 1) {
                             if(!$debug) {
-                                copyImage($brandMatches[0], $targetFile);
-                                convertImage($targetFile);
+                                copyImage($brandMatches[0], $epsImage);
+                                convertImage($epsImage);
                             }
                         } else {
                             my $product = $sheet->{Cells}[$row][6]->{Val};
@@ -112,8 +111,8 @@ foreach my $sheet(@{$excelParser->{Worksheet}}) {
                                 } else {
                                     if($number > 0) {
                                         if(!$debug) {
-                                            copyImage($brandMatches[--$number], $targetFile);
-                                            convertImage($targetFile);
+                                            copyImage($brandMatches[--$number], $epsImage);
+                                            convertImage($epsImage);
                                         }
                                     }
                                 }
@@ -148,15 +147,15 @@ sub copyImage {
 }
 
 sub convertImage {
-    my $filename = shift;
-    my $baseFilename = substr($filename, 0, -4);
+    my $source = shift;
+    my $filename = substr($source, 0, -3);
 
     print 'Converting image to JPG...';
-    system('convert -density 300 -layers flatten "${filename}" "${baseFilename}.jpg"');
+    system('convert -density 300 -layers flatten "'.$source.'" "'.TRG_WEB_DIR.'/'.$filename.'jpg"');
     print BOLD, BLUE, 'done!', RESET, "\n";
 
     print 'Converting image to PNG...';
-    system('convert -density 300 -layers flatten "${filename}" "${baseFilename}.png"');
+    system('convert -density 300 -layers flatten "'.$source.'" "'.TRG_WEB_DIR.'/'.$filename.'png"');
     print BOLD, BLUE, 'done!', RESET, "\n";
 }
 
